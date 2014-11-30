@@ -5,6 +5,7 @@ from scrapy.contrib.linkextractors.sgml import SgmlLinkExtractor
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.http import Request
 from steamcommunity_crawler.items import SteamcommunityCrawlerItem
+from exceptions import AttributeError, IndexError
 
 class SteamCommunitySpider(CrawlSpider):
     name = 'steamcommunity'
@@ -20,7 +21,12 @@ class SteamCommunitySpider(CrawlSpider):
     def parse_game_list(self, response):
         sel = Selector(response)
 
-        steam_id = re.search('/profiles/(\d+)/games', response.url).group(1)
+        steam_id = None
+        try:
+            steam_id = re.search('/profiles/(\d+)/games', response.url).group(1)
+        except AttributeError:
+            steam_id = response.meta['steam_id']
+
         game_list = json.loads(re.search('rgGames = (\[[^\]]*\]);',
                                          sel.xpath('//script[@language="javascript"]')
                                          .extract()[0]).group(1))
@@ -31,7 +37,7 @@ class SteamCommunitySpider(CrawlSpider):
                 total_hours_played = game['hours_forever']
 
                 request = Request('http://steamcommunity.com/profiles/'
-                                  + steam_id + '/stats/' + game_id + '/?tab=achievements',
+                                  + str(steam_id) + '/stats/' + str(game_id) + '/?tab=achievements',
                                   callback=self.parse_game_achievements)
                 request.meta['steam_id'] = steam_id
                 request.meta['game_id'] = game_id
@@ -40,19 +46,27 @@ class SteamCommunitySpider(CrawlSpider):
 
                 yield request
 
-        yield Request('http://steamcommunity.com/profiles/' + str(int(steam_id)+1) + '/games/?tab=all',
+
+        request = Request('http://steamcommunity.com/profiles/' + str(int(steam_id)+1) + '/games/?tab=all',
                               callback=self.parse_game_list)
+        request.meta['steam_id'] = str(int(steam_id)+1)
+        yield request
 
     def parse_game_achievements(self, response):
         sel = Selector(response)
 
         item = SteamcommunityCrawlerItem()
-        item['achievements_percentage'] = re.search('\((\d+)%\)',
-                                            sel.xpath('//div[@id="topSummaryAchievements"]/text()')
-                                            .extract()[0]).group(1)
+        try:
+            item['achievements_percentage'] = re.search('\((\d+)%\)',
+                                                sel.xpath('//div[@id="topSummaryAchievements"]/text()')
+                                                .extract()[0]).group(1)
+        except IndexError:
+            item['achievements_percentage'] = re.search('\((\d+)%\)',
+                                                sel.xpath('//div[@class="achievementStatusText"]/text()')
+                                                .extract()[0]).group(1)
         item['steam_id'] = response.meta['steam_id']
-        item['game_id'] = response.meta['game_id']
-        item['game_name'] = response.meta['game_name']
+        item['app_id'] = response.meta['game_id']
+        item['app_name'] = response.meta['game_name']
         item['total_hours_played'] = response.meta['total_hours_played']
 
         return item

@@ -1,11 +1,8 @@
-# Define here the models for your scraped items
-#
-# See documentation in:
-# http://doc.scrapy.org/en/latest/topics/items.html
-
 from scrapy.item import Item, Field
 
 class SteamcommunityCrawlerItem(Item):
-    # define the fields for your item here like:
-    # name = Field()
-    pass
+    steam_id = Field() # User id in steam platform
+    app_id = Field() # Game id in steam platform
+    app_name = Field() # Game's name
+    total_hours_played = Field() # Amount of minutes user has spent playing this game
+    achievements_percentage = Field() # Percentage of achievements an user has gotten from this game

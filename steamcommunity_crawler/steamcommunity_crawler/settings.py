@@ -1,15 +1,17 @@
-# Scrapy settings for steamcommunity_crawler project
-#
-# For simplicity, this file contains only the most important settings by
-# default. All the other settings are documented here:
-#
-#     http://doc.scrapy.org/en/latest/topics/settings.html
-#
+import os.path
 
 BOT_NAME = 'steamcommunity_crawler'
 
 SPIDER_MODULES = ['steamcommunity_crawler.spiders']
 NEWSPIDER_MODULE = 'steamcommunity_crawler.spiders'
+COOKIES_ENABLED = False
+CONCURRENT_REQUESTS = 50
+DEPTH_STATS_VERBOSE = True
+# Depth first search
+DEPTH_PRIORITY = 1
+SCHEDULER_DISK_QUEUE = 'scrapy.squeue.PickleFifoDiskQueue'
+SCHEDULER_MEMORY_QUEUE = 'scrapy.squeue.FifoMemoryQueue'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'steamcommunity_crawler (+http://www.yourdomain.com)'
+LOG_FILE = os.path.expanduser("~/logs/steamcommunity_crawler.log")

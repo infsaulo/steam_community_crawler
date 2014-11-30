@@ -27,25 +27,29 @@ class SteamCommunitySpider(CrawlSpider):
         except AttributeError:
             steam_id = response.meta['steam_id']
 
-        game_list = json.loads(re.search('rgGames = (\[[^\]]*\]);',
-                                         sel.xpath('//script[@language="javascript"]')
-                                         .extract()[0]).group(1))
-        for game in game_list:
-            if game.has_key('hours_forever') and game['availStatLinks']['achievements']:
-                game_id = game['appid']
-                game_name = game['name']
-                total_hours_played = game['hours_forever']
+        try:
+            game_list = json.loads(re.search('rgGames = (\[.*\]);',
+                                             sel.xpath('//script[@language="javascript"]')
+                                             .extract()[0]).group(1))
 
-                request = Request('http://steamcommunity.com/profiles/'
-                                  + str(steam_id) + '/stats/' + str(game_id) + '/?tab=achievements',
-                                  callback=self.parse_game_achievements)
-                request.meta['steam_id'] = steam_id
-                request.meta['game_id'] = game_id
-                request.meta['game_name'] = game_name
-                request.meta['total_hours_played'] = total_hours_played
+            for game in game_list:
+                if game.has_key('hours_forever') and game['availStatLinks']['achievements']:
+                    game_id = game['appid']
+                    game_name = game['name']
+                    total_hours_played = game['hours_forever']
 
-                yield request
+                    request = Request('http://steamcommunity.com/profiles/'
+                                      + str(steam_id) + '/stats/' + str(game_id) + '/?tab=achievements',
+                                      callback=self.parse_game_achievements)
+                    request.meta['steam_id'] = steam_id
+                    request.meta['game_id'] = game_id
+                    request.meta['game_name'] = game_name
+                    request.meta['total_hours_played'] = total_hours_played
 
+                    yield request
+
+        except IndexError: # Page is private
+            pass
 
         request = Request('http://steamcommunity.com/profiles/' + str(int(steam_id)+1) + '/games/?tab=all',
                               callback=self.parse_game_list)
@@ -61,9 +65,13 @@ class SteamCommunitySpider(CrawlSpider):
                                                 sel.xpath('//div[@id="topSummaryAchievements"]/text()')
                                                 .extract()[0]).group(1)
         except IndexError:
-            item['achievements_percentage'] = re.search('\((\d+)%\)',
-                                                sel.xpath('//div[@class="achievementStatusText"]/text()')
-                                                .extract()[0]).group(1)
+            try:
+                item['achievements_percentage'] = re.search('\((\d+)%\)',
+                                                    sel.xpath('//div[@class="achievementStatusText"]/text()')
+                                                    .extract()[1]).group(1)
+            except IndexError:
+                return
+
         item['steam_id'] = response.meta['steam_id']
         item['app_id'] = response.meta['game_id']
         item['app_name'] = response.meta['game_name']

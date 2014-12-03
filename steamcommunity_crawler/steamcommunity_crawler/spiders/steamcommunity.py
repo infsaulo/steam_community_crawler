@@ -10,7 +10,7 @@ from exceptions import AttributeError, IndexError
 class SteamCommunitySpider(CrawlSpider):
     name = 'steamcommunity'
     allowed_domains = ['steamcommunity.com']
-    start_urls = ['http://steamcommunity.com/profiles/76561197960265729/games/?tab=all']
+    start_urls = ['http://steamcommunity.com/profiles/76561197960272515/games/?tab=all']
 
     rules = (
         Rule(SgmlLinkExtractor(allow=[r'/profiles/\d+/games/\?tab=all']),

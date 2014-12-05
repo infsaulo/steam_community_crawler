@@ -10,22 +10,19 @@ from exceptions import AttributeError, IndexError
 class SteamCommunitySpider(CrawlSpider):
     name = 'steamcommunity'
     allowed_domains = ['steamcommunity.com']
-    start_urls = ['http://steamcommunity.com/profiles/76561197960272515/games/?tab=all']
+    start_urls = ['http://steamcommunity.com/profiles/76561197960278091/games/?tab=all']
 
-    rules = (
-        Rule(SgmlLinkExtractor(allow=[r'/profiles/\d+/games/\?tab=all']),
-             callback='parse_game_list', follow=True),
-    )
-
-
-    def parse_game_list(self, response):
+    def parse(self, response):
         sel = Selector(response)
 
         steam_id = None
         try:
             steam_id = re.search('/profiles/(\d+)/games', response.url).group(1)
         except AttributeError:
-            steam_id = response.meta['steam_id']
+            try:
+                steam_id = response.meta['steam_id']
+            except KeyError:
+                steam_id = re.search('/profiles/(\d+)/games', response.meta['redirect_urls'][0]).group(1)
 
         try:
             game_list = json.loads(re.search('rgGames = (\[.*\]);',
@@ -52,7 +49,7 @@ class SteamCommunitySpider(CrawlSpider):
             pass
 
         request = Request('http://steamcommunity.com/profiles/' + str(int(steam_id)+1) + '/games/?tab=all',
-                              callback=self.parse_game_list)
+                              callback=self.parse)
         request.meta['steam_id'] = str(int(steam_id)+1)
         yield request
 
